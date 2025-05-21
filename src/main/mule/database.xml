@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="3563c3af-ec50-43d5-b6fd-409b61ff648f" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="1234" database="temp" />
+	</db:config>
+	<flow name="databaseFlow" doc:id="8e9a85e3-2238-4fbe-b353-cc664706f706" >
+		<db:select doc:id="01613d49-e20e-43ca-b9b9-1e22d58cf68c" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from emp]]></db:sql>
+		</db:select>
+		<logger level="INFO" doc:name="Logger" doc:id="acf4fe3e-6b48-4085-94df-9d73bf253e43" message="#[payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="8ec675ef-87fe-4b74-8389-a5677724750b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
