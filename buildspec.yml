@@ -1,0 +1,53 @@
+version: 0.2
+
+env:
+  variables:
+    S3_BUCKET: "release-snapshot"
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto11
+    commands:
+      - echo "Installing tools..."
+      - apt-get update && apt-get install -y zip git
+      - echo "Tools installed."
+
+  pre_build:
+    commands:
+      - echo "Setting up Git..."
+      - git config --global user.name "saicharan"
+      - git config --global user.email "saicharan@dataskate.io"
+      - git fetch --all
+      - BRANCH_NAME=$(echo "$CODEBUILD_WEBHOOK_HEAD_REF" | sed 's|refs/heads/||')
+      - echo "Current branch: $BRANCH_NAME"
+      - |
+        if [[ "$BRANCH_NAME" == feature/* ]]; then
+          echo "Merging feature into develop and pushing..."
+          git checkout develop || git checkout -b develop origin/develop
+          git merge origin/"$BRANCH_NAME" --no-ff --allow-unrelated-histories -m "Auto-merge from $BRANCH_NAME"
+          git push origin develop
+        else
+          echo "No merge needed in pre_build for branch: $BRANCH_NAME"
+
+  build:
+    commands:
+      - |
+        if [[ "$BRANCH_NAME" == "develop" ]]; then
+          echo "Building project using Maven..."
+          mvn clean package -DskipTests
+        else
+          echo "No build steps for branch: $BRANCH_NAME"
+
+  post_build:
+    commands:
+      - |
+        if [[ "$BRANCH_NAME" == "develop" ]]; then
+          echo "Creating and uploading build snapshot..."
+          mkdir -p snapshots
+          SNAPSHOT_NAME="snapshot-$(date +%Y%m%d-%H%M%S).zip"
+          zip -r "snapshots/$SNAPSHOT_NAME" target/
+          aws s3 cp "snapshots/$SNAPSHOT_NAME" s3://$S3_BUCKET/$SNAPSHOT_NAME
+          echo "Snapshot uploaded to S3: $SNAPSHOT_NAME"
+        else
+          echo "No post-build steps for branch: $BRANCH_NAME"
